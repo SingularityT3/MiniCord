@@ -1,0 +1,100 @@
+html,
+body,
+#root {
+  position: relative;
+  z-index: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: -10;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: rgb(26, 26, 26);
+  color: whitesmoke;
+}
+
+p {
+  font-size: large;
+  margin: 5px;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  background-color: blueviolet;
+  color: azure;
+  font-size: large;
+  padding: 8px 20px;
+  margin: 7px 0;
+}
+
+button:hover {
+  background-color: rgb(102, 32, 168);
+}
+
+button:active {
+  background-color: rgb(77, 25, 126);
+}
+
+button:disabled {
+    background-color: rgb(57, 18, 92);
+    color: grey;
+}
+
+label {
+  font-weight: 400;
+  font-size: large;
+  margin: 5px 0;
+}
+
+input {
+  padding: 0.4em 1.2ex;
+  border: 1px solid rgb(88, 88, 88);
+  border-radius: 10px;
+  background-color: rgb(95, 95, 95);
+  color: white;
+  font-size: medium;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+input:focus {
+  outline: none;
+  border-color: rgb(143, 143, 143);
+}
+
+input.invalid {
+  border: 2px solid red;
+}
+
+hr {
+  color: white;
+  width: 100%;
+  height: 0;
+  outline-width: 0;
+  border: 1px solid grey;
+  margin-top: 15px;
+}
+
+a {
+  color: rgb(161, 73, 243);
+}
+
+a:hover {
+  color: blueviolet;
+}
+
+a:active {
+  color: rgb(112, 33, 185);
+}

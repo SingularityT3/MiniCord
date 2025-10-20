@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, type NavigateFunction } from "react-router";
 import axios, { AxiosError } from "axios";
 import { URL } from "./main";
+import styles from "./auth.module.css";
 
 interface CaptionedInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -15,15 +16,15 @@ function CaptionedInput({
   ...props
 }: CaptionedInputProps) {
   return (
-    <span>
+    <>
       <input {...props}></input>
       {enableCaption && (
         <>
           <br />
-          <label>{caption}</label>
+          <label className={styles.caption}>{caption}</label>
         </>
       )}
-    </span>
+    </>
   );
 }
 
@@ -79,45 +80,51 @@ export function LoginPage() {
   };
 
   return (
-    <div>
-      <h1 onClick={() => navigate("/")}>MiniCord</h1>
+    <div className={`${styles.login_bg} bg`}>
+      <div className={styles.rightPanel}>
+        <h1 onClick={() => navigate("/")} className={styles.minicord}>MiniCord</h1>
 
-      <form onSubmit={submitDetails}>
-        <label htmlFor="username">Username</label>
-        <input
-          type="text"
-          name="username"
-          id="username"
-          ref={username}
-          required
-        ></input>
-        <br />
+        <form onSubmit={submitDetails} className={styles.authForm}>
+          <label htmlFor="username">Username</label>
+          <br />
+          <input
+            type="text"
+            name="username"
+            id="username"
+            ref={username}
+            required
+            className={errMsg === "User does not exist. Did you mean to sign up?" ? "invalid" : ""}
+          ></input>
+          <br />
 
-        <label htmlFor="password">Password</label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-          ref={password}
-          required
-        ></input>
-        <br />
+          <label htmlFor="password">Password</label>
+          <br />
+          <input
+            type="password"
+            name="password"
+            id="password"
+            ref={password}
+            required
+            className={errMsg === "Incorrect Password" ? "invalid" : ""}
+          ></input>
+          <br />
 
-        <button type="submit" disabled={submitting}>
-          Log In
-        </button>
-        {errMsg !== "" && (
-          <>
-            <br />
-            <label>{errMsg}</label>
-          </>
-        )}
-      </form>
+          <button type="submit" disabled={submitting}>
+            Log In
+          </button>
+          {errMsg !== "" && (
+            <>
+              <br />
+              <label>{errMsg}</label>
+            </>
+          )}
+        </form>
 
-      <hr />
-      <label>
-        Or <Link to="/signup" ref={signupLink}>sign up</Link> instead
-      </label>
+        <hr />
+        <label>
+          Or <Link to="/signup" ref={signupLink}>sign up</Link> instead
+        </label>
+      </div>
     </div>
   );
 }
@@ -169,61 +176,67 @@ export function SignupPage() {
   };
 
   return (
-    <div>
-      <h1 onClick={() => navigate("/")}>MiniCord</h1>
-      <form onSubmit={submitDetails}>
-        <label htmlFor="username">Username</label>
-        <CaptionedInput
-          type="text"
-          name="username"
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          enableCaption={!usernameAvailable}
-          caption="❌ username is not available"
-        ></CaptionedInput>
-        <br />
+    <div className={`${styles.login_bg} bg`}>
+      <div className={styles.rightPanel}>
+        <h1 onClick={() => navigate("/")} className={styles.minicord}>MiniCord</h1>
+        <form onSubmit={submitDetails} className={styles.authForm}>
+          <label htmlFor="username">Username</label>
+          <CaptionedInput
+            type="text"
+            name="username"
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            enableCaption={!usernameAvailable}
+            caption="❌ username is not available"
+            className={usernameAvailable ? "" : "invalid"}
+          ></CaptionedInput>
+          <br />
 
-        <label htmlFor="password">Password</label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        ></input>
-        <br />
+          <label htmlFor="password">Password</label>
+          <br />
+          <input
+            type="password"
+            name="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          ></input>
+          <br />
 
-        <label htmlFor="confirm_password">Confirm Password</label>
-        <CaptionedInput
-          type="password"
-          id="confirm_password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          enableCaption={confirmPassword !== ""}
-          caption={
-            password === confirmPassword
-              ? "✅ Passwords match"
-              : "❌ Passwords do not match!"
-          }
-        ></CaptionedInput>
-        <br />
+          <label htmlFor="confirm_password">Confirm Password</label>
+          <br />
+          <CaptionedInput
+            type="password"
+            id="confirm_password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            enableCaption={confirmPassword !== ""}
+            caption={
+              password === confirmPassword
+                ? "✅ Passwords match"
+                : "❌ Passwords do not match!"
+            }
+            className={confirmPassword === "" || password === confirmPassword ? "" : "invalid"}
+          ></CaptionedInput>
+          <br />
 
-        <button
-          type="submit"
-          disabled={submitting || password != confirmPassword}
-        >
-          Sign up
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={submitting || !usernameAvailable || (password !== confirmPassword && confirmPassword !== "")}
+          >
+            Sign up
+          </button>
+        </form>
 
-      <hr />
-      <label>
-        Or <Link to="/login">log in</Link> instead
-      </label>
+        <hr />
+        <label>
+          Or <Link to="/login">log in</Link> instead
+        </label>
+      </div>
     </div>
   );
 }

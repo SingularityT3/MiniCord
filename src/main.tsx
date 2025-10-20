@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import LandingPage from "./landing.tsx";
 import { LoginPage, SignupPage } from "./auth.tsx";
 import HomePage from "./home.tsx";
+import "./index.css";
 
 export const URL = "http://localhost:3000";
 

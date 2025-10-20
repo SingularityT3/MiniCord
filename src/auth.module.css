@@ -1,0 +1,46 @@
+.minicord {
+  font-size: 4em;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.minicord:hover {
+  color: rgb(130, 77, 165);
+}
+
+.minicord:active {
+  color: rgb(97, 54, 126);
+}
+
+.rightPanel {
+  position: absolute;
+  width: 30%;
+  height: 100%;
+  right: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-content: center;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.caption {
+  font-size: small;
+  font-weight: 500;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.login_bg {
+  background: #9157c7;
+  background: linear-gradient(
+    90deg,
+    rgba(145, 87, 199, 1) 0%,
+    rgba(0, 0, 0, 1) 70%,
+    rgba(0, 0, 0, 1) 100%
+  );
+}

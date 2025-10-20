@@ -7,8 +7,9 @@ export default function LandingPage() {
     <>
       <h1>MiniCord</h1>
       <p>A messaging app inspired by Discord.</p>
-      <br/>
+      <br />
       <button onClick={() => navigate("/login")}>Log In</button>
+      <button onClick={() => navigate("/signup")}>Sign Up</button>
     </>
   );
 }
