@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, type NavigateFunction } from "react-router";
-import axios, { AxiosError } from "axios";
-import { URL } from "./main";
+import { AxiosError } from "axios";
+import { minicord } from "./main";
 import styles from "./auth.module.css";
 
 interface CaptionedInputProps
@@ -30,8 +30,8 @@ function CaptionedInput({
 
 function checkLoggedIn(navigate: NavigateFunction) {
   return () => {
-    let jwt = localStorage.getItem("jwt");
-    if (jwt) {
+    const token = localStorage.getItem("token");
+    if (token) {
       navigate("/home");
     }
   };
@@ -42,19 +42,19 @@ export function LoginPage() {
 
   useEffect(checkLoggedIn(navigate), []);
 
-  let username = useRef<HTMLInputElement>(null);
-  let password = useRef<HTMLInputElement>(null);
+  const username = useRef<HTMLInputElement>(null);
+  const password = useRef<HTMLInputElement>(null);
 
-  let [submitting, setSubmitting] = useState(false);
-  let [errMsg, setErrMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
 
-  let signupLink = useRef<HTMLAnchorElement>(null);
+  const signupLink = useRef<HTMLAnchorElement>(null);
 
-  let submitDetails = (e: React.FormEvent) => {
+  const submitDetails = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    axios
-      .post(URL + "/auth/login", {
+    minicord
+      .post("/auth/login", {
         username: username.current!.value,
         password: password.current!.value,
       })
@@ -62,7 +62,7 @@ export function LoginPage() {
         if (res.status !== 200 || res.data === "") {
           throw new Error("Unknown Error: Failed to login");
         }
-        localStorage.setItem("jwt", res.data);
+        localStorage.setItem("token", res.data);
         navigate("/home");
       })
       .catch((err) => {
@@ -109,7 +109,7 @@ export function LoginPage() {
           ></input>
           <br />
 
-          <button type="submit" disabled={submitting}>
+          <button type="submit" disabled={submitting} className="primary">
             Log In
           </button>
           {errMsg !== "" && (
@@ -134,17 +134,17 @@ export function SignupPage() {
 
   useEffect(checkLoggedIn(navigate), []);
 
-  let [username, setUsername] = useState("");
-  let [password, setPassword] = useState("");
-  let [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  let [usernameAvailable, setUsernameAvailable] = useState(true);
-  let [submitting, setSubmitting] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    let timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (username === "") return;
-      axios.get(URL + "/auth/checkuser?username=" + username).then((res) => {
+      minicord.get("/auth/checkuser?username=" + username).then((res) => {
         if (res.status === 200 && typeof res.data.available === "boolean") {
           setUsernameAvailable(res.data.available);
         }
@@ -154,11 +154,11 @@ export function SignupPage() {
     return () => clearTimeout(timeout);
   }, [username]);
 
-  let submitDetails = (e: React.FormEvent) => {
+  const submitDetails = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    axios
-      .post(URL + "/auth/signup", {
+    minicord
+      .post("/auth/signup", {
         username: username,
         password: password,
       })
@@ -227,6 +227,7 @@ export function SignupPage() {
           <button
             type="submit"
             disabled={submitting || !usernameAvailable || (password !== confirmPassword && confirmPassword !== "")}
+            className="primary"
           >
             Sign up
           </button>

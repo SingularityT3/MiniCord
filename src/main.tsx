@@ -4,8 +4,24 @@ import LandingPage from "./landing.tsx";
 import { LoginPage, SignupPage } from "./auth.tsx";
 import HomePage from "./home.tsx";
 import "./index.css";
+import axios from "axios";
 
-export const URL = "http://localhost:3000";
+const URL = "http://localhost:3000";
+export const minicord = axios.create({
+  baseURL: URL,
+  timeout: 1000,
+});
+
+minicord.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>

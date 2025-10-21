@@ -32,23 +32,45 @@ p {
 button {
   border: 0;
   border-radius: 12px;
-  background-color: blueviolet;
-  color: azure;
-  font-size: large;
   padding: 8px 20px;
   margin: 7px 0;
 }
 
-button:hover {
+button.primary {
+  background-color: blueviolet;
+  color: azure;
+  font-size: large;
+}
+
+button.primary:hover {
   background-color: rgb(102, 32, 168);
 }
 
-button:active {
+button.primary:active {
   background-color: rgb(77, 25, 126);
 }
 
-button:disabled {
+button.primary:disabled {
     background-color: rgb(57, 18, 92);
+    color: grey;
+}
+
+button.secondary {
+  background-color: rgb(50, 50, 50);
+  color: azure;
+  font-size: medium;
+}
+
+button.secondary:hover {
+  background-color: blueviolet;
+}
+
+button.secondary:active {
+  background-color: rgb(102, 32, 168);
+}
+
+button.secondary:disabled {
+    background-color: rgb(26, 26, 26);
     color: grey;
 }
 
