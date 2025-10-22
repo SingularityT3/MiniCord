@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, type NavigateFunction } from "react-router";
 import { AxiosError } from "axios";
-import { minicord } from "./main";
+import minicord from "@/api.ts";
 import styles from "./auth.module.css";
 
 interface CaptionedInputProps
@@ -82,7 +82,9 @@ export function LoginPage() {
   return (
     <div className={`${styles.login_bg} bg`}>
       <div className={styles.rightPanel}>
-        <h1 onClick={() => navigate("/")} className={styles.minicord}>MiniCord</h1>
+        <h1 onClick={() => navigate("/")} className={styles.minicord}>
+          MiniCord
+        </h1>
 
         <form onSubmit={submitDetails} className={styles.authForm}>
           <label htmlFor="username">Username</label>
@@ -93,7 +95,11 @@ export function LoginPage() {
             id="username"
             ref={username}
             required
-            className={errMsg === "User does not exist. Did you mean to sign up?" ? "invalid" : ""}
+            className={
+              errMsg === "User does not exist. Did you mean to sign up?"
+                ? "invalid"
+                : ""
+            }
           ></input>
           <br />
 
@@ -122,7 +128,11 @@ export function LoginPage() {
 
         <hr />
         <label>
-          Or <Link to="/signup" ref={signupLink}>sign up</Link> instead
+          Or{" "}
+          <Link to="/signup" ref={signupLink}>
+            sign up
+          </Link>{" "}
+          instead
         </label>
       </div>
     </div>
@@ -178,7 +188,9 @@ export function SignupPage() {
   return (
     <div className={`${styles.login_bg} bg`}>
       <div className={styles.rightPanel}>
-        <h1 onClick={() => navigate("/")} className={styles.minicord}>MiniCord</h1>
+        <h1 onClick={() => navigate("/")} className={styles.minicord}>
+          MiniCord
+        </h1>
         <form onSubmit={submitDetails} className={styles.authForm}>
           <label htmlFor="username">Username</label>
           <CaptionedInput
@@ -220,13 +232,21 @@ export function SignupPage() {
                 ? "✅ Passwords match"
                 : "❌ Passwords do not match!"
             }
-            className={confirmPassword === "" || password === confirmPassword ? "" : "invalid"}
+            className={
+              confirmPassword === "" || password === confirmPassword
+                ? ""
+                : "invalid"
+            }
           ></CaptionedInput>
           <br />
 
           <button
             type="submit"
-            disabled={submitting || !usernameAvailable || (password !== confirmPassword && confirmPassword !== "")}
+            disabled={
+              submitting ||
+              !usernameAvailable ||
+              (password !== confirmPassword && confirmPassword !== "")
+            }
             className="primary"
           >
             Sign up
