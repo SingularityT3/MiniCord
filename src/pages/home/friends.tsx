@@ -20,10 +20,10 @@ export function FriendsManager() {
   useEffect(updateFriends, [user]);
 
   const addFriendUsername = useRef<HTMLInputElement>(null);
-  const addFriend = () => {
+  const addFriend = async () => {
     const username = addFriendUsername.current!.value;
-    minicord
-      .post("/friends/sendRequest", { username: username })
+    minicord.get("/users/by-username/" + username)
+      .then((res) => minicord.post("/friends", { recipientId: res.data.id }))
       .then(() => alert("Friend request sent"))
       .catch((err) => alert(err.toString()));
   };
@@ -69,13 +69,13 @@ function PendingFriendRequest({
       <label>{user.username}</label>
       <div>
         <button
-          onClick={() => acceptFriendRequest(user, actionCallback)}
+          onClick={() => acceptFriendRequest(user.friendRelationId!, actionCallback)}
           className="secondary"
         >
           Accept
         </button>
         <button
-          onClick={() => rejectFriendRequest(user, actionCallback)}
+          onClick={() => deleteFriend(user.friendRelationId!, actionCallback)}
           className="secondary"
         >
           Reject
@@ -96,7 +96,7 @@ function FriendCard({
     <div className={styles.friend_card}>
       <label>{user.username}</label>
       <button
-        onClick={() => rejectFriendRequest(user, actionCallback)}
+        onClick={() => deleteFriend(user.friendRelationId!, actionCallback)}
         className="secondary"
       >
         Remove
@@ -112,17 +112,18 @@ async function fetchFriends(userId: string): Promise<User[][]> {
   const friends = [];
 
   for (let f of friendObjs) {
-    const friendId = f.senderId === userId ? f.recipientId : f.senderId;
+    const friendUserId = f.senderId === userId ? f.recipientId : f.senderId;
+    const friend = { id: f.id, friendUserId };
     if (f.acceptTime) {
-      friends.push(friendId);
+      friends.push(friend);
     } else {
-      pending.push(friendId);
+      pending.push(friend);
     }
   }
 
-  const fetchUser = async (id: string) => {
-    const user = await minicord.get(`/user?id=${id}`);
-    return { id: id, ...user.data };
+  const fetchUser = async (friend: { id: string, friendUserId: string }) => {
+    const user = await minicord.get(`/users/${friend.friendUserId}`);
+    return { ...user.data, id: friend.friendUserId, friendRelationId: friend.id };
   };
   const pendingUsersPromises = pending.map(fetchUser);
   const friendUsersPromises = friends.map(fetchUser);
@@ -135,16 +136,16 @@ async function fetchFriends(userId: string): Promise<User[][]> {
   return [pendingUsers, friendUsers];
 }
 
-function acceptFriendRequest(user: User, actionCallback: CallableFunction) {
+function acceptFriendRequest(id: string, actionCallback: CallableFunction) {
   minicord
-    .post("/friends/acceptRequest", { username: user.username })
+    .post(`/friends/${id}/accept`)
     .then(() => actionCallback())
     .catch((err) => alert(err.toString()));
 }
 
-function rejectFriendRequest(user: User, actionCallback: CallableFunction) {
+function deleteFriend(id: string, actionCallback: CallableFunction) {
   minicord
-    .post("/friends/rejectRequest", { username: user.username })
+    .delete(`/friends/${id}`)
     .then(() => actionCallback())
     .catch((err) => alert(err.toString()));
 }

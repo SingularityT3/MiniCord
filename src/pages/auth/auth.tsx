@@ -154,7 +154,7 @@ export function SignupPage() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (username === "") return;
-      minicord.get("/auth/checkuser?username=" + username).then((res) => {
+      minicord.get("/auth/checkuser/" + username).then((res) => {
         if (res.status === 200 && typeof res.data.available === "boolean") {
           setUsernameAvailable(res.data.available);
         }

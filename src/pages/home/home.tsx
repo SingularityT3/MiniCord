@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, type NavigateFunction } from "react-router";
 import minicord from "@/api.ts";
 import styles from "./home.module.css";
 import type { User } from "@/types";
@@ -7,12 +7,20 @@ import { FriendsManager } from "./friends.tsx";
 
 export const UserContext = createContext<User | null>(null);
 
+function logout(navigate: NavigateFunction) {
+  localStorage.removeItem("token");
+  navigate("/login");
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User>();
 
   useEffect(() => {
-    minicord.get("/user/self").then((res) => setUser(res.data));
+    minicord
+      .get("/users/self")
+      .then((res) => setUser(res.data))
+      .catch(() => logout(navigate));
   }, []);
 
   useEffect(() => {
@@ -64,16 +72,11 @@ function UserControls() {
   const navigate = useNavigate();
   const user = useContext(UserContext);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
-
   return (
     <div className={styles.side_panel_container}>
       <div className={styles.user_controls}>
         <label>{user?.username}</label>
-        <button onClick={logout} className="secondary">
+        <button onClick={() => logout(navigate)} className="secondary">
           Logout
         </button>
       </div>
