@@ -1,3 +1,9 @@
+export interface User {
+  id: string;
+  username: string;
+  friendRelationId?: string;
+}
+
 export interface Friend {
   id: string;
   senderId: string;
@@ -5,8 +11,15 @@ export interface Friend {
   acceptTime?: Date;
 }
 
-export interface User {
+export interface Conversation {
   id: string;
-  username: string;
-  friendRelationId?: string;
+  title: string;
+  type: string;
+  members?: Member[];
+}
+
+export interface Member {
+  id: string;
+  userId: string;
+  joinTime: Date;
 }

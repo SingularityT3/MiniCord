@@ -2,8 +2,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, type NavigateFunction } from "react-router";
 import minicord from "@/api.ts";
 import styles from "./home.module.css";
-import type { User } from "@/types";
+import type { Conversation, User } from "@/types";
 import { FriendsManager } from "./friends.tsx";
+import { ConversationList, DMContent } from "./conversation.tsx";
+
+export interface ContentState {
+  selected: string; // friends | dm | group
+  conversation?: Conversation;
+}
 
 export const UserContext = createContext<User | null>(null);
 
@@ -15,6 +21,9 @@ function logout(navigate: NavigateFunction) {
 export default function HomePage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User>();
+  const [contentState, setContentState] = useState<ContentState>({
+    selected: "friends",
+  });
 
   useEffect(() => {
     minicord
@@ -30,29 +39,32 @@ export default function HomePage() {
   return (
     <div className={`${styles.home_bg} bg`}>
       <UserContext value={user!}>
-        <SidePanel />
-        <ContentView />
+        <SidePanel setContentState={setContentState} />
+        <ContentView
+          contentState={contentState}
+          setContentState={setContentState}
+        />
       </UserContext>
     </div>
   );
 }
 
-function SidePanel() {
+function SidePanel({
+  setContentState,
+}: {
+  setContentState: (s: ContentState) => void;
+}) {
   return (
     <div className={styles.side_panel}>
       <div>
-        <div className={styles.side_panel_container}>
+        <div
+          className={styles.side_panel_container}
+          onClick={() => setContentState({ selected: "friends" })}
+        >
           <label>Friends</label>
         </div>
         <hr />
-        <div>
-          <div className={styles.side_panel_container}>
-            <label>Conversation 1</label>
-          </div>
-          <div className={styles.side_panel_container}>
-            <label>Conversation 2</label>
-          </div>
-        </div>
+        <ConversationList setContentState={setContentState} />
       </div>
 
       <UserControls />
@@ -60,10 +72,21 @@ function SidePanel() {
   );
 }
 
-function ContentView() {
+function ContentView({
+  contentState,
+  setContentState,
+}: {
+  contentState: ContentState;
+  setContentState: (s: ContentState) => void;
+}) {
   return (
     <>
-      <FriendsManager />
+      {contentState.selected === "friends" && (
+        <FriendsManager setContentState={setContentState} />
+      )}
+      {contentState.selected === "dm" && (
+        <DMContent conversation={contentState.conversation!} />
+      )}
     </>
   );
 }

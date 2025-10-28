@@ -2,9 +2,14 @@ import minicord from "@/api";
 import type { Friend, User } from "@/types";
 import styles from "./home.module.css";
 import { useState, useContext, useEffect, useRef } from "react";
-import { UserContext } from "./home";
+import { UserContext, type ContentState } from "./home";
+import { getDM } from "./conversation";
 
-export function FriendsManager() {
+export function FriendsManager({
+  setContentState,
+}: {
+  setContentState: (s: ContentState) => void;
+}) {
   const [pendingFriends, setPendingFriends] = useState<User[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
 
@@ -22,10 +27,20 @@ export function FriendsManager() {
   const addFriendUsername = useRef<HTMLInputElement>(null);
   const addFriend = async () => {
     const username = addFriendUsername.current!.value;
-    minicord.get("/users/by-username/" + username)
+    minicord
+      .get("/users/by-username/" + username)
       .then((res) => minicord.post("/friends", { recipientId: res.data.id }))
       .then(() => alert("Friend request sent"))
       .catch((err) => alert(err.toString()));
+  };
+
+  const openDM = (friendId: string) => {
+    getDM(friendId).then((conversation) =>
+      setContentState({
+        selected: "dm",
+        conversation: conversation,
+      })
+    );
   };
 
   return (
@@ -51,7 +66,12 @@ export function FriendsManager() {
         </>
       )}
       {friends.map((u) => (
-        <FriendCard key={u.id} user={u} actionCallback={updateFriends} />
+        <FriendCard
+          key={u.id}
+          user={u}
+          chatCallback={async () => await openDM(u.id)}
+          removeCallback={updateFriends}
+        />
       ))}
     </div>
   );
@@ -69,7 +89,9 @@ function PendingFriendRequest({
       <label>{user.username}</label>
       <div>
         <button
-          onClick={() => acceptFriendRequest(user.friendRelationId!, actionCallback)}
+          onClick={() =>
+            acceptFriendRequest(user.friendRelationId!, actionCallback)
+          }
           className="secondary"
         >
           Accept
@@ -87,16 +109,24 @@ function PendingFriendRequest({
 
 function FriendCard({
   user,
-  actionCallback,
+  chatCallback,
+  removeCallback,
 }: {
   user: User;
-  actionCallback: CallableFunction;
+  chatCallback: CallableFunction;
+  removeCallback: CallableFunction;
 }) {
   return (
     <div className={styles.friend_card}>
       <label>{user.username}</label>
       <button
-        onClick={() => deleteFriend(user.friendRelationId!, actionCallback)}
+        onClick={() => chatCallback(user.friendRelationId!)}
+        className="secondary"
+      >
+        Chat
+      </button>
+      <button
+        onClick={() => deleteFriend(user.friendRelationId!, removeCallback)}
         className="secondary"
       >
         Remove
@@ -121,9 +151,13 @@ async function fetchFriends(userId: string): Promise<User[][]> {
     }
   }
 
-  const fetchUser = async (friend: { id: string, friendUserId: string }) => {
+  const fetchUser = async (friend: { id: string; friendUserId: string }) => {
     const user = await minicord.get(`/users/${friend.friendUserId}`);
-    return { ...user.data, id: friend.friendUserId, friendRelationId: friend.id };
+    return {
+      ...user.data,
+      id: friend.friendUserId,
+      friendRelationId: friend.id,
+    };
   };
   const pendingUsersPromises = pending.map(fetchUser);
   const friendUsersPromises = friends.map(fetchUser);
