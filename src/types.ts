@@ -23,3 +23,12 @@ export interface Member {
   userId: string;
   joinTime: Date;
 }
+
+export interface Message {
+  id: string;
+  authorId: string;
+  author?: User;
+  conversationId: string;
+  sendTime: Date;
+  content: string;
+}

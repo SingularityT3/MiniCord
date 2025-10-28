@@ -173,7 +173,7 @@ export function SignupPage() {
         password: password,
       })
       .then((res) => {
-        if (res.status === 200) {
+        if (res.status === 201) {
           navigate("/login");
         } else {
           throw new Error(res.statusText);

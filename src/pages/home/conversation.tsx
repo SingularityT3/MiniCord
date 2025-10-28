@@ -1,8 +1,8 @@
 import minicord from "@/api";
-import type { Conversation } from "@/types";
-import { useEffect, useState } from "react";
+import type { Conversation, Member, Message, User } from "@/types";
+import { useContext, useEffect, useRef, useState } from "react";
 import styles from "./home.module.css";
-import type { ContentState } from "./home";
+import { UserContext, type ContentState } from "./home";
 
 export function ConversationList({
   setContentState,
@@ -11,12 +11,20 @@ export function ConversationList({
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
+  const user = useContext(UserContext);
   useEffect(() => {
+    if (!user) return;
     minicord
       .get("/conversations")
-      .then((res) => setConversations(res.data))
+      .then((res) => {
+        Promise.all(
+          res.data.map(async (c: Conversation) =>
+            c.type === "DIRECT_MESSAGE" ? { ...c, title: (await getDMUser(c, user!.id)).username } : c
+          )
+        ).then((c) => setConversations(c));
+      })
       .catch((err) => alert(err.toString()));
-  }, []);
+  }, [user]);
 
   const memberDivs = conversations.map((c) => (
     <div
@@ -29,27 +37,89 @@ export function ConversationList({
         })
       }
     >
-      <label>{c.id}</label>
+      <label>{c.title}</label>
     </div>
   ));
 
   return <div>{memberDivs}</div>;
 }
 
-function MessageDisplay() {
+function MessageComponent({ message }: { message: Message }) {
   return (
-    <>
-      <p>Messages go here...</p>
-    </>
+    <div>
+      <label><b>{message.author?.username}</b></label>
+      <br />
+      <p>{message.content}</p>
+    </div>
+  );
+}
+
+function MessageDisplay({ conversation }: { conversation: Conversation }) {
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    minicord
+      .get(`/conversations/${conversation.id}/messages`)
+      .then((res) =>
+        Promise.all(
+          res.data.messages.map(async (msg: Message) => {
+            const userRes = await minicord.get(`/users/${msg.authorId}`);
+            return { ...msg, author: userRes.data };
+          })
+        )
+      )
+      .then((res) => setMessages(res));
+  }, []);
+
+  return (
+    <div>
+      {messages.map((msg) => (
+        <MessageComponent key={msg.id} message={msg} />
+      ))}
+    </div>
+  );
+}
+
+function MessageComposer({ conversation }: { conversation: Conversation }) {
+  const msgRef = useRef<HTMLTextAreaElement>(null);
+
+  const sendMsg = () => {
+    if (!msgRef.current) return;
+    minicord.post(`/conversations/${conversation.id}/messages`, {
+      content: msgRef.current.value,
+    });
+  };
+
+  return (
+    <div>
+      <textarea ref={msgRef}></textarea>
+      <button onClick={sendMsg}>Send</button>
+    </div>
   );
 }
 
 export function DMContent({ conversation }: { conversation: Conversation }) {
+  const [friendUser, setFriendUser] = useState<User>();
+  const user = useContext(UserContext);
+
+  useEffect(() => {
+    minicord
+      .get(`/conversations/${conversation.id}/members`)
+      .then((res) => {
+        const friend: Member = res.data.find(
+          (member: Member) => member.userId !== user!.id
+        );
+        return minicord.get(`/users/${friend.userId}`);
+      })
+      .then((res) => setFriendUser(res.data));
+  }, []);
+
   return (
-    <>
-      <h1>Conversation ID: {conversation.id}</h1>
-      <MessageDisplay />
-    </>
+    <div>
+      <h1>{friendUser?.username}</h1>
+      <MessageDisplay conversation={conversation} />
+      <MessageComposer conversation={conversation} />
+    </div>
   );
 }
 
@@ -73,4 +143,14 @@ export async function getDM(friendUserId: string): Promise<Conversation> {
     members: [friendUserId],
   });
   return conversation.data;
+}
+
+async function getDMUser(conversation: Conversation, currentUserId: string): Promise<User> {
+  const members: Member[] = (
+    await minicord.get(`/conversations/${conversation.id}/members`)
+  ).data;
+  const friend = members.find(
+    (member: Member) => member.userId !== currentUserId
+  );
+  return (await minicord.get(`/users/${friend!.userId}`)).data;
 }
