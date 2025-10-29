@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, type NavigateFunction } from "react-router";
 import minicord from "@/api.ts";
 import styles from "./home.module.css";
@@ -52,7 +52,7 @@ export default function HomePage() {
 function SidePanel({
   setContentState,
 }: {
-  setContentState: (s: ContentState) => void;
+  setContentState: Dispatch<SetStateAction<ContentState>>;
 }) {
   return (
     <div className={styles.side_panel}>
@@ -77,7 +77,7 @@ function ContentView({
   setContentState,
 }: {
   contentState: ContentState;
-  setContentState: (s: ContentState) => void;
+  setContentState: Dispatch<SetStateAction<ContentState>>;
 }) {
   return (
     <>

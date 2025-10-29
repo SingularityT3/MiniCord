@@ -1,13 +1,13 @@
 import minicord from "@/api";
 import type { Conversation, Member, Message, User } from "@/types";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import styles from "./home.module.css";
 import { UserContext, type ContentState } from "./home";
 
 export function ConversationList({
   setContentState,
 }: {
-  setContentState: (s: ContentState) => void;
+  setContentState: Dispatch<SetStateAction<ContentState>>;
 }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
@@ -69,7 +69,7 @@ function MessageDisplay({ conversation }: { conversation: Conversation }) {
         )
       )
       .then((res) => setMessages(res));
-  }, []);
+  }, [conversation]);
 
   return (
     <div>
@@ -112,7 +112,7 @@ export function DMContent({ conversation }: { conversation: Conversation }) {
         return minicord.get(`/users/${friend.userId}`);
       })
       .then((res) => setFriendUser(res.data));
-  }, []);
+  }, [conversation]);
 
   return (
     <div>

@@ -1,14 +1,14 @@
 import minicord from "@/api";
 import type { Friend, User } from "@/types";
 import styles from "./home.module.css";
-import { useState, useContext, useEffect, useRef } from "react";
+import { useState, useContext, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { UserContext, type ContentState } from "./home";
 import { getDM } from "./conversation";
 
 export function FriendsManager({
   setContentState,
 }: {
-  setContentState: (s: ContentState) => void;
+  setContentState: Dispatch<SetStateAction<ContentState>>;
 }) {
   const [pendingFriends, setPendingFriends] = useState<User[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
@@ -146,7 +146,7 @@ async function fetchFriends(userId: string): Promise<User[][]> {
     const friend = { id: f.id, friendUserId };
     if (f.acceptTime) {
       friends.push(friend);
-    } else {
+    } else if (userId === f.recipientId) {
       pending.push(friend);
     }
   }
