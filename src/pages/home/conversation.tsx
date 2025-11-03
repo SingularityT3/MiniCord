@@ -1,8 +1,16 @@
 import minicord from "@/api";
 import type { Conversation, Member, Message, User } from "@/types";
-import { useContext, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import styles from "./home.module.css";
 import { UserContext, type ContentState } from "./home";
+import { useVisibility } from "@/hooks/useVisibility";
 
 export function ConversationList({
   setContentState,
@@ -19,7 +27,9 @@ export function ConversationList({
       .then((res) => {
         Promise.all(
           res.data.map(async (c: Conversation) =>
-            c.type === "DIRECT_MESSAGE" ? { ...c, title: (await getDMUser(c, user!.id)).username } : c
+            c.type === "DIRECT_MESSAGE"
+              ? { ...c, title: (await getDMUser(c, user!.id)).username }
+              : c
           )
         ).then((c) => setConversations(c));
       })
@@ -47,7 +57,9 @@ export function ConversationList({
 function MessageComponent({ message }: { message: Message }) {
   return (
     <div>
-      <label><b>{message.author?.username}</b></label>
+      <label>
+        <b>{message.author?.username}</b>
+      </label>
       <br />
       <p>{message.content}</p>
     </div>
@@ -56,10 +68,20 @@ function MessageComponent({ message }: { message: Message }) {
 
 function MessageDisplay({ conversation }: { conversation: Conversation }) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [lastConversationId, setLastConversationId] = useState("");
+  const [lastMessageId, setLastMessageId] = useState("");
+  const [loadedOldestMessage, setLoadedOldestMessage] = useState(false);
 
-  useEffect(() => {
+  const updateMessages = () => {
+    const container = containerRef.current;
+    const isAtBottom =
+      container &&
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+        50; // 50px threshold
+
+    const filter = lastMessageId ? `?after=${lastMessageId}` : "";
     minicord
-      .get(`/conversations/${conversation.id}/messages`)
+      .get(`/conversations/${conversation.id}/messages${filter}`)
       .then((res) =>
         Promise.all(
           res.data.messages.map(async (msg: Message) => {
@@ -68,11 +90,81 @@ function MessageDisplay({ conversation }: { conversation: Conversation }) {
           })
         )
       )
-      .then((res) => setMessages(res));
-  }, [conversation]);
+      .then((res: Message[]) => {
+        if (res.length < 1) return;
+        setMessages((messages) => {
+          const newMessages = messages.concat(res);
+          if (isAtBottom) {
+            requestAnimationFrame(() => {
+              const container = containerRef.current;
+              if (container) {
+                container.scrollTop = container.scrollHeight;
+              }
+            });
+          }
+          return newMessages;
+        });
+        setLastMessageId(res[res.length - 1].id);
+      });
+  };
+
+  useEffect(() => {
+    if (conversation.id !== lastConversationId) {
+      setLastConversationId(conversation.id);
+      setMessages([]);
+      setLastMessageId("");
+      setLoadedOldestMessage(false);
+    }
+    updateMessages();
+    const interval = setInterval(updateMessages, 1000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [conversation, lastMessageId]);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const fetchOlderMessages = () => {
+    if (messages.length < 1 || loadedOldestMessage) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const previousScrollHeight = container.scrollHeight;
+    const previousScrollTop = container.scrollTop;
+
+    minicord
+      .get(
+        `/conversations/${conversation.id}/messages?before=${messages[0].id}`
+      )
+      .then((res) =>
+        Promise.all(
+          res.data.messages.map(async (msg: Message) => {
+            const userRes = await minicord.get(`/users/${msg.authorId}`);
+            return { ...msg, author: userRes.data };
+          })
+        )
+      )
+      .then((res: Message[]) => {
+        if (res.length < 1) {
+          setLoadedOldestMessage(true);
+          return;
+        }
+        setMessages(() => res.concat(messages));
+
+        requestAnimationFrame(() => {
+          if (!container) return;
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop =
+            newScrollHeight - previousScrollHeight + previousScrollTop;
+        });
+      });
+  };
+
+  const ref = useVisibility<HTMLHRElement>(fetchOlderMessages);
 
   return (
-    <div>
+    <div ref={containerRef} style={{ height: "80%", overflow: "scroll" }}>
+      <hr ref={ref} />
       {messages.map((msg) => (
         <MessageComponent key={msg.id} message={msg} />
       ))}
@@ -88,6 +180,7 @@ function MessageComposer({ conversation }: { conversation: Conversation }) {
     minicord.post(`/conversations/${conversation.id}/messages`, {
       content: msgRef.current.value,
     });
+    msgRef.current.value = "";
   };
 
   return (
@@ -145,7 +238,10 @@ export async function getDM(friendUserId: string): Promise<Conversation> {
   return conversation.data;
 }
 
-async function getDMUser(conversation: Conversation, currentUserId: string): Promise<User> {
+async function getDMUser(
+  conversation: Conversation,
+  currentUserId: string
+): Promise<User> {
   const members: Member[] = (
     await minicord.get(`/conversations/${conversation.id}/members`)
   ).data;
