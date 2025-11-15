@@ -59,10 +59,10 @@ export function LoginPage() {
         password: password.current!.value,
       })
       .then((res) => {
-        if (res.status !== 200 || res.data === "") {
+        if (res.status !== 200 || typeof res.data.token != "string") {
           throw new Error("Unknown Error: Failed to login");
         }
-        localStorage.setItem("token", res.data);
+        localStorage.setItem("token", res.data.token);
         navigate("/home");
       })
       .catch((err) => {
