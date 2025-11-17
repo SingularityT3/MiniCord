@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { createConversationAPI } from "@/Api/Conversation";
+import { getUserByUsernameAPI } from "@/Api/Users";
 
 const CreateChatModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -18,6 +20,61 @@ const CreateChatModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
+
+  const dmUsernameRef = useRef<HTMLInputElement>(null);
+  const groupTitleRef = useRef<HTMLInputElement>(null);
+  const groupUsernamesRef = useRef<HTMLInputElement>(null);
+
+  const handleStartDM = async () => {
+    if (!dmUsernameRef.current?.value) return;
+    try {
+      const res = await getUserByUsernameAPI(dmUsernameRef.current.value);
+      const user = res.data;
+      if (user && user.id) {
+        await createConversationAPI("DIRECT_MESSAGE", [user.id]);
+        onClose();
+      } else {
+        alert("User not found");
+      }
+    } catch (error: unknown) {
+      console.error(error);
+      alert("Failed to create DM");
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    const title = groupTitleRef.current?.value;
+    const usernames = groupUsernamesRef.current?.value
+      .split(",")
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+    if (!title || usernames!.length === 0) {
+      alert("Please provide a group title and at least one member.");
+      return;
+    }
+
+    try {
+      const memberIds = await Promise.all(
+        usernames!.map(async (username) => {
+          const res = await getUserByUsernameAPI(username);
+          const user = res.data;
+          if (user && user.id) {
+            return user.id;
+          } else {
+            throw new Error(`User not found: ${username}`);
+          }
+        })
+      );
+
+      await createConversationAPI("GROUP", memberIds, title);
+      onClose();
+    } catch (error: unknown) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Failed to create group: ${message}`);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -79,9 +136,13 @@ const CreateChatModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               type="text"
               placeholder="Enter username"
               className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
+              ref={dmUsernameRef}
             />
 
-            <button className="mt-4 w-full bg-purple-600 text-white py-2 rounded">
+            <button
+              className="mt-4 w-full bg-purple-600 text-white py-2 rounded"
+              onClick={handleStartDM}
+            >
               Start DM
             </button>
           </div>
@@ -98,15 +159,20 @@ const CreateChatModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               type="text"
               placeholder="Group Title"
               className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70 mb-3"
+              ref={groupTitleRef}
             />
 
             <input
               type="text"
-              placeholder="Add member usernames"
+              placeholder="Add member usernames (comma separated)"
               className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
+              ref={groupUsernamesRef}
             />
 
-            <button className="mt-4 w-full bg-purple-600 text-white py-2 rounded">
+            <button
+              className="mt-4 w-full bg-purple-600 text-white py-2 rounded"
+              onClick={handleCreateGroup}
+            >
               Create Group
             </button>
           </div>

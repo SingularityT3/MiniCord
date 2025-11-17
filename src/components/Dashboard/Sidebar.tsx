@@ -19,8 +19,12 @@ const Sidebar: React.FC = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchConversations = () => {
     getConversationsAPI().then((r) => setConversations(r.data || []));
+  };
+
+  useEffect(() => {
+    fetchConversations();
   }, []);
 
   useEffect(() => {
@@ -33,12 +37,17 @@ const Sidebar: React.FC = () => {
     });
   }, [conversations]);
 
+  const handleCloseCreateModal = () => {
+    setCreateOpen(false);
+    fetchConversations();
+  };
+
   return (
     <>
       {requestsOpen && (
         <FriendRequestsModal onClose={() => setRequestsOpen(false)} />
       )}
-      {createOpen && <CreateChatModal onClose={() => setCreateOpen(false)} />}
+      {createOpen && <CreateChatModal onClose={handleCloseCreateModal} />}
 
       <aside
         className="

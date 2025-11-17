@@ -1,6 +1,7 @@
 import React from "react";
 import ChatWindow from "./ChatWindow";
 import Sidebar from "./Sidebar";
+import ConversationMembers from "./ConversationMembers";
 
 const DashboardLayout: React.FC = () => {
   return (
@@ -11,10 +12,8 @@ const DashboardLayout: React.FC = () => {
       transition-colors duration-500 overflow-hidden"
     >
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <ChatWindow />
-
-      </div>
+      <ChatWindow />
+      <ConversationMembers />
     </main>
   );
 };

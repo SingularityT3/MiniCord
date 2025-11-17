@@ -4,24 +4,37 @@ import {
   acceptFriendRequestAPI,
   deleteFriendOrRequestAPI,
   pollFriendRequestsAPI,
+  sendFriendRequestAPI,
 } from "@/Api/Friends";
+import { getUserByUsernameAPI } from "@/Api/Users";
+import { type Friend, type User } from "@/types";
 
 interface Props {
   onClose: () => void;
 }
 
+interface FriendRequestWithSender extends Friend {
+  sender: User;
+}
+
+interface FriendshipWithSender extends Friend {
+  sender: User;
+}
+
 const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const friendUsernameRef = useRef<HTMLInputElement>(null);
 
-  const [pending, setPending] = useState<any[]>([]);
-  const [friends, setFriends] = useState<any[]>([]);
+  const [pending, setPending] = useState<FriendRequestWithSender[]>([]);
+  const [friends, setFriends] = useState<FriendshipWithSender[]>([]);
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   // initial fetch + polling
   useEffect(() => {
     let mounted = true;
 
-    (async () => {
+    const fetchFriendsAndRequests = async () => {
       try {
         const res = await getFriendsAPI();
         if (!mounted) return;
@@ -30,9 +43,11 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
       } catch (err) {
         console.error("Failed to fetch friends", err);
       }
-    })();
+    };
 
-    const stopPolling = pollFriendRequestsAPI((pendingList: any[]) => {
+    fetchFriendsAndRequests();
+
+    const stopPolling = pollFriendRequestsAPI((pendingList: FriendRequestWithSender[]) => {
       setPending(pendingList);
     }, 1500);
 
@@ -80,6 +95,37 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
     }
   };
 
+  const handleSendFriendRequest = async () => {
+    const username = friendUsernameRef.current?.value;
+    if (!username) {
+      alert("Please enter a username.");
+      return;
+    }
+
+    setSendingRequest(true);
+    try {
+      const userRes = await getUserByUsernameAPI(username);
+      const user = userRes.data;
+
+      if (!user || !user.id) {
+        alert("User not found.");
+        return;
+      }
+
+      await sendFriendRequestAPI(user.id);
+      alert(`Friend request sent to ${username}!`);
+      if (friendUsernameRef.current) {
+        friendUsernameRef.current.value = "";
+      }
+    } catch (error: unknown) {
+      console.error("Failed to send friend request:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Failed to send friend request: ${message}`);
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div
@@ -99,6 +145,27 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
             className="text-sm text-gray-600 dark:text-gray-300 px-3 py-1"
           >
             Close
+          </button>
+        </div>
+
+        {/* ADD FRIEND */}
+        <h2 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-3">
+          Add Friend
+        </h2>
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="Enter username"
+            className="flex-1 px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
+            ref={friendUsernameRef}
+            disabled={sendingRequest}
+          />
+          <button
+            onClick={handleSendFriendRequest}
+            className="px-4 py-2 bg-purple-600 text-white rounded"
+            disabled={sendingRequest}
+          >
+            {sendingRequest ? "Sending..." : "Send Request"}
           </button>
         </div>
 
