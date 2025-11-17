@@ -25,38 +25,11 @@ body {
   color: whitesmoke;
 }
 
-p {
-  font-size: large;
-  margin: 5px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-button {
-  border: 0;
-  border-radius: 12px;
-  padding: 8px 20px;
-  margin: 7px 0;
-}
-
-button.primary {
-  background-color: blueviolet;
-  color: azure;
-  font-size: large;
-}
-
-button.primary:hover {
-  background-color: rgb(102, 32, 168);
-}
-
-button.primary:active {
-  background-color: rgb(77, 25, 126);
-}
-
-button.primary:disabled {
-    background-color: rgb(57, 18, 92);
-    color: grey;
-}
-
-button.secondary {
-  background-color: rgb(50, 50, 50);
-  color: azure;
+.animate-fadeIn {
+  animation: fadeIn 0.15s ease-out;
 }

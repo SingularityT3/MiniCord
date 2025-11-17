@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { signupAPI } from "@/Api/Auth";
 import { useAuth } from "@/context/User";
 
@@ -11,6 +11,7 @@ const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -29,7 +30,7 @@ const Signup: React.FC = () => {
       if (res.status === 201) {
         setSuccess("Account created successfully! Logging you in...");
         await login(username, password);
-        // navigate("/dashboard")
+        navigate("/dashboard")
       }
     } catch (err: any) {
       console.error(err);

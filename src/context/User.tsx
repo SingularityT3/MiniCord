@@ -8,9 +8,8 @@ import {
 } from "react";
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
-  email?: string;
   profilePicture?: string;
 }
 
@@ -40,7 +39,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (res.status === 200) {
         const data = res.data as { token: string; user: User };
-
         setToken(data.token);
         setUser(data.user);
 

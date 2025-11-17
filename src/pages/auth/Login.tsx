@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/User";
 import { useState } from "react";
-import { NavLink } from "react-router"; 
+import { NavLink, useNavigate } from "react-router"; 
 
 const Login: React.FC = () => {
   const {login} = useAuth();
@@ -8,6 +8,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -17,8 +18,7 @@ const Login: React.FC = () => {
     try {
       await login(username, password);
       console.log("Logged in successfully");
-      // Optionally navigate after login:
-      // navigate("/dashboard")
+      navigate("/dashboard")
     } catch (err: any) {
       console.error(err);
       setError("Invalid username or password");
