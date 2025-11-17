@@ -54,9 +54,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-  };
+    };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");

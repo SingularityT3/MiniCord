@@ -1,127 +1,116 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getUserByUsernameAPI } from "@/Api/Users";
-import { createConversationAPI } from "@/Api/Conversation";
+import { ArrowLeft } from "lucide-react";
 
-const CreateChatModal: React.FC<{
-  onClose: () => void;
-  onCreated?: (conv: any) => void;
-}> = ({ onClose, onCreated }) => {
-  const [mode, setMode] = useState<"DM" | "GROUP">("DM");
-  const [value, setValue] = useState("");
-  const [membersInput, setMembersInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
+const CreateChatModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<"INIT" | "DM" | "GROUP">("INIT");
 
+  // Close modal when clicking outside
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    function handleClick(e: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
     }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
 
-  const create = async () => {
-    setLoading(true);
-    try {
-      if (mode === "DM") {
-        const r = await getUserByUsernameAPI(value);
-        const id = r.data?.id;
-        if (!id) throw new Error("User not found");
-        const convRes = await createConversationAPI("DIRECT_MESSAGE", [id]);
-        onCreated?.(convRes.data);
-      } else {
-        const names = membersInput
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        if (names.length < 1) throw new Error("Add at least one member");
-        // resolve to ids sequentially
-        const ids: string[] = [];
-        for (const n of names) {
-          const r = await getUserByUsernameAPI(n);
-          ids.push(r.data.id);
-        }
-        const convRes = await createConversationAPI("GROUP", ids, value);
-        onCreated?.(convRes.data);
-      }
-    } catch (err: any) {
-      console.error("create chat failed", err);
-      alert(err.message || "Failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div
-        ref={ref}
-        className="w-full max-w-md p-6 rounded-2xl bg-white/30 dark:bg-[#0f021f]/60 backdrop-blur-xl border border-purple-300/20 dark:border-purple-800/30"
+        ref={wrapperRef}
+        className="w-full max-w-lg bg-white/30 dark:bg-[#0f021f]/60 
+                   rounded-2xl p-6 backdrop-blur-xl border 
+                   border-purple-300/20 relative"
       >
-        <h3 className="text-lg font-semibold mb-3 text-purple-700 dark:text-purple-300">
-          Create Chat
-        </h3>
-        <div className="flex gap-2 mb-3">
+        {/* BACK BUTTON (only in DM or GROUP modes) */}
+        {(mode === "DM" || mode === "GROUP") && (
           <button
-            onClick={() => setMode("DM")}
-            className={`flex-1 py-2 rounded ${
-              mode === "DM"
-                ? "bg-purple-600 text-white"
-                : "bg-white/50 dark:bg-[#120427]/50"
-            }`}
+            onClick={() => setMode("INIT")}
+            className="absolute left-4 top-4 flex items-center gap-1 
+                       text-purple-700 dark:text-purple-300 text-sm
+                       hover:opacity-80 transition"
           >
-            DM
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
-          <button
-            onClick={() => setMode("GROUP")}
-            className={`flex-1 py-2 rounded ${
-              mode === "GROUP"
-                ? "bg-purple-600 text-white"
-                : "bg-white/50 dark:bg-[#120427]/50"
-            }`}
-          >
-            Group
-          </button>
-        </div>
-
-        {mode === "DM" ? (
-          <>
-            <input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="username"
-              className="w-full p-2 rounded mb-3 bg-white/70 dark:bg-[#16062e]/60"
-            />
-          </>
-        ) : (
-          <>
-            <input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Group title"
-              className="w-full p-2 rounded mb-2 bg-white/70 dark:bg-[#16062e]/60"
-            />
-            <input
-              value={membersInput}
-              onChange={(e) => setMembersInput(e.target.value)}
-              placeholder="members (comma separated usernames)"
-              className="w-full p-2 rounded mb-3 bg-white/70 dark:bg-[#16062e]/60"
-            />
-          </>
         )}
 
-        <div className="flex gap-2">
-          <button
-            disabled={loading}
-            onClick={create}
-            className="flex-1 py-2 rounded bg-purple-600 text-white"
-          >
-            {loading ? "Creating..." : "Create"}
-          </button>
-          <button onClick={onClose} className="px-4 py-2 rounded border">
-            Cancel
-          </button>
-        </div>
+        {/* CLOSE BUTTON */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-600 dark:text-gray-300 
+                     hover:text-gray-800 dark:hover:text-gray-100 text-sm"
+        >
+          Close
+        </button>
+
+        {/* INIT MODE */}
+        {mode === "INIT" && (
+          <div className="flex flex-col items-center gap-6 mt-10">
+            <button
+              onClick={() => setMode("DM")}
+              className="w-full py-3 bg-purple-600 text-white rounded-xl text-lg"
+            >
+              Direct Message
+            </button>
+
+            <button
+              onClick={() => setMode("GROUP")}
+              className="w-full py-3 bg-purple-500 text-white rounded-xl text-lg"
+            >
+              Create Group
+            </button>
+          </div>
+        )}
+
+        {/* DM MODE */}
+        {mode === "DM" && (
+          <div className="mt-12">
+            <h2 className="text-lg font-semibold text-purple-700 dark:text-purple-200 mb-4">
+              Create Direct Message
+            </h2>
+
+            <input
+              type="text"
+              placeholder="Enter username"
+              className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
+            />
+
+            <button className="mt-4 w-full bg-purple-600 text-white py-2 rounded">
+              Start DM
+            </button>
+          </div>
+        )}
+
+        {/* GROUP MODE */}
+        {mode === "GROUP" && (
+          <div className="mt-12">
+            <h2 className="text-lg font-semibold text-purple-700 dark:text-purple-200 mb-4">
+              Create Group
+            </h2>
+
+            <input
+              type="text"
+              placeholder="Group Title"
+              className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70 mb-3"
+            />
+
+            <input
+              type="text"
+              placeholder="Add member usernames"
+              className="w-full px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
+            />
+
+            <button className="mt-4 w-full bg-purple-600 text-white py-2 rounded">
+              Create Group
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

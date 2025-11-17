@@ -1,73 +1,253 @@
-# React + TypeScript + Vite
+# ⭐ **MiniCord — Frontend (Vite + React + TypeScript)**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A lightweight Discord-style chat application frontend powered by **React**, **TypeScript**, **TailwindCSS**, and **REST API + WebSockets**.
 
-Currently, two official plugins are available:
+This is the UI for the MiniCord backend.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* 🔐 **JWT authentication** (login/signup)
+* 👤 **User profile** (avatar, logout dropdown)
+* 💬 **Conversations system**
 
-## Expanding the ESLint configuration
+  * Direct Messages (DM)
+  * Group chats
+* 👥 **Friends system**
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+  * Send friend requests
+  * Accept / Reject
+  * Unfriend
+* 🌫️ **Blurred modals** for DM creation, group creation, and friend requests
+* 🔄 **Dynamic sidebar**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+  * Conversations list
+  * Friend request panel
+  * Create Chat (“+”) button
+* 🖼️ **Auto-generated avatars** using UI-Avatars
+* ⚡ **Fast UI** with Tailwind transitions
+* 📡 **WebSocket-ready chat window** (polling for now)
+* 📱 **Responsive layout**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🧱 Tech Stack
+
+| Layer              | Tech                          |
+| ------------------ | ----------------------------- |
+| Frontend Framework | React 18 (Vite)               |
+| Language           | TypeScript                    |
+| Styling            | TailwindCSS (Dark/Light mode) |
+| Routing            | React Router DOM              |
+| API Client         | Axios                         |
+| Auth               | JWT (localStorage)            |
+| Avatars            | UI-Avatars                    |
+| State Management   | React Context (Auth)          |
+| Real-time          | WebSockets (coming soon)      |
+
+---
+
+## 📂 Folder Structure
+
+```
+src/
+ ├── Api/               # All REST API wrappers (auth, users, friends, conversations, messages)
+ ├── components/        # All components
+ ├── context/
+ │    └── User.tsx      # Auth context (user + token)
+ ├── pages/
+ │    ├── Dashboard/    # Main dashboard layout
+ │    └── Auth/         # Login / Signup pages
+ ├── hooks/             # (soon) websocket, caching hooks
+ ├── styles/
+ │    └── index.css     # Tailwind styles
+ ├── App.tsx
+ ├── main.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Setup & Installation
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Clone Repo
+
+```sh
+git clone https://github.com/your-username/minicord-frontend.git
+cd minicord-frontend
 ```
+
+### 2. Install Dependencies
+
+```sh
+npm install
+```
+
+### 3. Set Environment Variables
+
+Create a `.env` file:
+
+```
+VITE_API_URL=http://localhost:3000
+```
+
+These values are accessed via:
+
+```ts
+import.meta.env.VITE_API_URL
+```
+
+---
+
+## ▶️ Running Dev Server
+
+```sh
+npm run dev
+```
+
+Frontend runs at:
+
+```
+http://localhost:5173
+```
+
+---
+
+## 🔌 API Integration
+
+All API calls use dedicated wrappers inside `src/Api/`.
+
+Example:
+
+```ts
+import { loginAPI } from "@/Api/Auth";
+
+const res = await loginAPI(username, password);
+console.log(res.data);
+```
+
+### Authentication
+
+Token and user data stored in:
+
+```
+localStorage.token
+localStorage.user
+```
+
+and accessed via:
+
+```ts
+const { user, token, login, logout } = useAuth();
+```
+
+---
+
+## 💬 Conversations
+
+Each conversation fetches:
+
+* Members
+* Avatars (via `ui-avatars`)
+* Username resolution via `/users/:id`
+
+Clicking a conversation navigates to:
+
+```
+/convo/:conversationId
+```
+
+Where the **ChatWindow** loads that conversation’s messages.
+
+---
+
+## 👥 Friend Requests
+
+Opening the friend request panel shows:
+
+### Pending Requests
+
+* Accept
+* Reject
+
+### Friends
+
+* Unfriend
+
+Requests are **polled every 1.5 seconds** while the modal is open.
+
+---
+
+## ➕ Create Chat Modal
+
+Clicking the **+** icon opens a blur modal with two options:
+
+* Direct Message
+* Create Group
+
+Each option opens a simple form for entering username(s) and group title.
+
+---
+
+## 📡 WebSocket Support (Coming Soon)
+
+The project is structured so ChatWindow can easily switch from polling to WebSockets.
+
+Planned features:
+
+* Real-time typing indicators
+* Live message updates
+* Online/offline badges
+
+---
+
+## 🎨 Theming
+
+The entire UI uses a **purple theme**, with:
+
+* `bg-purple-600`, `bg-purple-500`, `text-purple-300`, etc.
+* smooth dark mode support via Tailwind’s `dark:` class
+* blurred glass UI using `backdrop-blur-xl`
+
+---
+
+## 🧪 Linting & Formatting
+
+ESLint + Prettier recommended:
+
+```sh
+npm install -D eslint prettier
+```
+
+---
+
+## 📦 Build for Production
+
+```sh
+npm run build
+```
+
+Output goes to:
+
+```
+dist/
+```
+
+Deployable to Netlify / Vercel / Cloudflare Pages.
+
+---
+
+## 🙌 Credits
+
+* UI-Avatars for auto-generated avatars
+* TailwindCSS for design
+* Vite for blazing-fast dev experience
+* MiniCord Backend
+
+---
+
+## 📌 Status
+
+This frontend is **actively in development**. WebSockets and full real-time features coming next.
+
+---
