@@ -29,6 +29,7 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
   const [friends, setFriends] = useState<FriendshipWithSender[]>([]);
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [sendingRequest, setSendingRequest] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // initial fetch + polling
   useEffect(() => {
@@ -47,9 +48,12 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
 
     fetchFriendsAndRequests();
 
-    const stopPolling = pollFriendRequestsAPI((pendingList: FriendRequestWithSender[]) => {
-      setPending(pendingList);
-    }, 1500);
+    const stopPolling = pollFriendRequestsAPI(
+      (pendingList: FriendRequestWithSender[]) => {
+        setPending(pendingList);
+      },
+      1500
+    );
 
     const handleClick = (e: MouseEvent) => {
       if (
@@ -97,30 +101,42 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
 
   const handleSendFriendRequest = async () => {
     const username = friendUsernameRef.current?.value;
+
     if (!username) {
-      alert("Please enter a username.");
+      setErrorMessage("Please enter a username.");
       return;
     }
 
     setSendingRequest(true);
+    setErrorMessage("");
+
     try {
       const userRes = await getUserByUsernameAPI(username);
       const user = userRes.data;
 
       if (!user || !user.id) {
-        alert("User not found.");
+        setErrorMessage("User not found.");
         return;
       }
 
       await sendFriendRequestAPI(user.id);
-      alert(`Friend request sent to ${username}!`);
-      if (friendUsernameRef.current) {
-        friendUsernameRef.current.value = "";
-      }
+
+      // clear input + error
+      if (friendUsernameRef.current) friendUsernameRef.current.value = "";
+      setErrorMessage("");
     } catch (error: unknown) {
-      console.error("Failed to send friend request:", error);
-      const message = error instanceof Error ? error.message : String(error);
-      alert(`Failed to send friend request: ${message}`);
+      console.error("Failed:", error);
+
+      const msg =
+        error instanceof Error ? error.message : "Something went wrong.";
+
+      if (msg.includes("404") || msg.includes("not found")) {
+        setErrorMessage("User not found.");
+      } else if (msg.includes("409") || msg.includes("exists")) {
+        setErrorMessage("You already sent a request to this user.");
+      } else {
+        setErrorMessage("Unable to send request right now.");
+      }
     } finally {
       setSendingRequest(false);
     }
@@ -152,21 +168,33 @@ const FriendRequestsModal: React.FC<Props> = ({ onClose }) => {
         <h2 className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-3">
           Add Friend
         </h2>
-        <div className="flex gap-2 mb-6">
-          <input
-            type="text"
-            placeholder="Enter username"
-            className="flex-1 px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70"
-            ref={friendUsernameRef}
-            disabled={sendingRequest}
-          />
-          <button
-            onClick={handleSendFriendRequest}
-            className="px-4 py-2 bg-purple-600 text-white rounded"
-            disabled={sendingRequest}
-          >
-            {sendingRequest ? "Sending..." : "Send Request"}
-          </button>
+
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter username"
+              className={`flex-1 px-4 py-2 rounded bg-white/70 dark:bg-[#16062e]/70
+        ${errorMessage ? "border border-red-500" : ""}
+      `}
+              ref={friendUsernameRef}
+              disabled={sendingRequest}
+              onChange={() => setErrorMessage("")} // clears error when typing
+            />
+
+            <button
+              onClick={handleSendFriendRequest}
+              className="px-4 py-2 bg-purple-600 text-white rounded"
+              disabled={sendingRequest}
+            >
+              {sendingRequest ? "Sending..." : "Send Request"}
+            </button>
+          </div>
+
+          {/* INLINE ERROR MESSAGE */}
+          {errorMessage && (
+            <p className="text-red-500 text-sm ml-1">{errorMessage}</p>
+          )}
         </div>
 
         {/* PENDING REQUESTS */}
