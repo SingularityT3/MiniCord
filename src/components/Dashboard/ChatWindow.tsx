@@ -8,6 +8,8 @@ import { getUserAPI } from "@/Api/Users";
 import MessageInput from "./MessageInput";
 import { useAuth } from "@/context/User";
 import { getMessagesAPI } from "@/Api/Messages";
+import { useVisibility } from "@/hooks/useVisibility";
+import { formatDistanceToNowStrict, isToday, format } from "date-fns";
 
 const ChatWindow: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -16,10 +18,44 @@ const ChatWindow: React.FC = () => {
   const [conversation, setConversation] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [lastMessageId, setLastMessageId] = useState<string | null>(null);
+  const [loadedOldestMessage, setLoadedOldestMessage] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const enrichMessages = async (msgs: any[]) => {
+    return await Promise.all(
+      msgs.map(async (m: any) => {
+        const cached = members.find((mm) => mm.userId === m.authorId);
+        if (cached)
+          return {
+            ...m,
+            sender: {
+              id: m.authorId,
+              username: cached.username,
+              profilePicture: cached.profilePicture,
+            },
+          };
+
+        try {
+          const u = await getUserAPI(m.authorId);
+          return {
+            ...m,
+            sender: {
+              id: m.authorId,
+              username: u.data.username,
+              profilePicture: u.data.profilePicture,
+            },
+          };
+        } catch {
+          return { ...m, sender: { username: "Unknown" } };
+        }
+      })
+    );
+  };
 
   // ----------------------------
   // Load Conversation Entry
@@ -31,8 +67,16 @@ const ChatWindow: React.FC = () => {
       if (!convId) {
         setConversation(null);
         setMembers([]);
+        setMessages([]);
+        setLastMessageId(null);
+        setLoadedOldestMessage(false);
         return;
       }
+
+      // Reset messages when conversation changes
+      setMessages([]);
+      setLastMessageId(null);
+      setLoadedOldestMessage(false);
 
       try {
         const list = await getConversationsAPI();
@@ -76,79 +120,115 @@ const ChatWindow: React.FC = () => {
     };
   }, [convId]);
 
-  // ----------------------------
-  // Poll Messages (every 1s)
-  // ----------------------------
+  // -------------------------------------
+  // Poll for new messages
+  // -------------------------------------
   useEffect(() => {
-    let mounted = true;
+    if (!convId) return;
 
-    if (!convId) {
-      setMessages([]);
-      return;
-    }
+    const updateMessages = async () => {
+      const container = containerRef.current;
+      const isAtBottom =
+        container &&
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+          100; // 100px threshold
 
-    const loadMessages = async () => {
       try {
-        const res = await getMessagesAPI(convId, 20);
-        if (!mounted) return;
+        const res = await getMessagesAPI(
+          convId,
+          20,
+          undefined,
+          lastMessageId || undefined
+        );
+        let newMessages = res.data?.messages || res.data || [];
+        if (newMessages.length < 1) return;
 
-        let msgs = res.data?.messages || res.data || [];
-
-        // SORT TIMESTAMP → Ensure new messages are last
-        msgs = msgs.sort(
+        newMessages = newMessages.sort(
           (a: any, b: any) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
 
-        // enrich
-        const enriched = await Promise.all(
-          msgs.map(async (m: any) => {
-            const cached = members.find((mm) => mm.userId === m.authorId);
-            if (cached)
-              return {
-                ...m,
-                sender: {
-                  id: m.authorId,
-                  username: cached.username,
-                  profilePicture: cached.profilePicture,
-                },
-              };
+        const enriched = await enrichMessages(newMessages);
 
-            try {
-              const u = await getUserAPI(m.authorId);
-              return {
-                ...m,
-                sender: {
-                  id: m.authorId,
-                  username: u.data.username,
-                  profilePicture: u.data.profilePicture,
-                },
-              };
-            } catch {
-              return { ...m, sender: { username: "Unknown" } };
-            }
-          })
-        );
-
-        setMessages(enriched);
-
-        // scroll to bottom after render
-        setTimeout(() => {
-          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 50);
+        setMessages((messages) => {
+          const allMsgs = messages.concat(enriched);
+          if (isAtBottom) {
+            setTimeout(() => {
+              bottomRef.current?.scrollIntoView({ behavior: "auto" });
+            }, 50);
+          }
+          return allMsgs;
+        });
+        setLastMessageId(enriched[enriched.length - 1].id);
       } catch (err) {
         console.error("load messages", err);
       }
     };
 
-    loadMessages();
-    const iv = setInterval(loadMessages, 1000);
+    // Initial fetch
+    if (!lastMessageId) {
+        updateMessages();
+    }
 
+    const interval = setInterval(updateMessages, 1500);
     return () => {
-      mounted = false;
-      clearInterval(iv);
+      clearInterval(interval);
     };
-  }, [convId, members]);
+  }, [convId, lastMessageId, members]);
+
+
+  // -------------------------------------
+  // Fetch older messages on scroll up
+  // -------------------------------------
+  const fetchOlderMessages = async () => {
+    if (messages.length < 1 || loadedOldestMessage || !convId) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const previousScrollHeight = container.scrollHeight;
+    const previousScrollTop = container.scrollTop;
+
+    try {
+      const res = await getMessagesAPI(convId, 20, messages[0].id);
+      let olderMessages = res.data?.messages || res.data || [];
+      if (olderMessages.length < 1) {
+        setLoadedOldestMessage(true);
+        return;
+      }
+      
+      olderMessages = olderMessages.sort(
+        (a: any, b: any) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      const enriched = await enrichMessages(olderMessages);
+      setMessages((current) => enriched.concat(current));
+
+      requestAnimationFrame(() => {
+        if (!container) return;
+        const newScrollHeight = container.scrollHeight;
+        container.scrollTop =
+          newScrollHeight - previousScrollHeight + previousScrollTop;
+      });
+    } catch (err) {
+      console.error("fetch older messages", err);
+    }
+  };
+
+  const topRef = useVisibility<HTMLDivElement>(fetchOlderMessages);
+
+  // ----------------------------
+  // Humanize Timestamp
+  // ----------------------------
+  const getHumanizedTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    if (isToday(date)) {
+      return formatDistanceToNowStrict(date, { addSuffix: true });
+    } else {
+      return format(date, "MMM dd, yyyy HH:mm");
+    }
+  };
 
   // ----------------------------
   // Render Header Title
@@ -171,7 +251,11 @@ const ChatWindow: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div ref={topRef} />
+        {!loadedOldestMessage && messages.length > 0 && (
+            <div className="text-center text-gray-500">Loading more...</div>
+        )}
         {messages.map((m) => (
           <div
             key={m.id}
@@ -203,10 +287,7 @@ const ChatWindow: React.FC = () => {
 
               {/* timestamp */}
               <p className="text-xs text-gray-500 mt-1">
-                {new Date(m.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {getHumanizedTimestamp(m.timestamp)}
               </p>
             </div>
           </div>
