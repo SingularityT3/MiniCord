@@ -5,8 +5,9 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 p-4 m-auto my-4 bg-white/10 backdrop-blur-sm gap-4  max-w-xs rounded-xl shadow-xl">
       <ul className="flex justify-between items-center">
         <li>
-          <NavLink to={"/home"} className="font-semibold text-white">
-            MiniCord
+          <NavLink to={"/"} className="font-semibold text-white flex items-center gap-2">
+            <img src="/favicon.ico" className="h-6"></img>
+            Minicord
           </NavLink>
         </li>
         <li>
